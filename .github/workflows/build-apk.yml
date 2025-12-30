@@ -9,7 +9,7 @@ jobs:
       PYTHON_VERSION: "3.10.12"
       JDK_VERSION: "11.0.29"
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-    
+
     steps:
       - name: 拉取仓库代码
         uses: actions/checkout@v4
@@ -27,37 +27,44 @@ jobs:
         with:
           python-version: "3.10.12"
 
-      - name: 安装系统必需依赖（移除冲突包）
+      - name: 安装系统必需依赖（无冲突）
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential git zip unzip
+          echo "系统依赖安装完成" >> ./build.log
 
       - name: 安装Python依赖
         run: |
           pip install --upgrade pip
           pip install buildozer==1.5.0 cython==0.29.33 kivy==2.2.1 pyjnius==1.5.0
+          echo "Python依赖安装完成" >> ./build.log
 
-      - name: 下载Vosk资源（模型+AAR）
+      - name: 下载Vosk资源（模型+有效AAR包）
         run: |
           mkdir -p assets
+          # 下载Vosk small英文模型（有效链接）
           wget -O assets/vosk-model-small-en-us-0.15.zip https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip
           unzip assets/vosk-model-small-en-us-0.15.zip -d assets/
           rm assets/vosk-model-small-en-us-0.15.zip
+          echo "Vosk模型下载完成" >> ./build.log
+          # 下载Vosk Android 1.4.0 AAR（有效链接）
           mkdir -p libs
-          wget -O libs/vosk-android-1.3.0.aar https://github.com/alphacep/vosk-android/releases/download/v1.3.0/vosk-android-1.3.0.aar
+          wget -O libs/vosk-android-1.4.0.aar https://github.com/alphacep/vosk-android/releases/download/v1.4.0/vosk-android-1.4.0.aar
+          echo "Vosk AAR包下载完成" >> ./build.log
 
-      - name: 构建APK（确保生成到bin目录）
+      - name: 构建APK（强制生成日志）
         run: |
           yes | buildozer android debug 2>&1 | tee ./build.log
+          echo "APK构建完成" >> ./build.log
 
-      - name: 上传APK文件（关键：确保Artifacts能看到）
+      - name: 上传APK文件（始终上传）
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: teleprompter-apk
           path: bin/*.apk
 
-      - name: 上传构建日志
+      - name: 上传构建日志（始终上传）
         if: always()
         uses: actions/upload-artifact@v4
         with:
