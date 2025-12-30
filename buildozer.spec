@@ -30,7 +30,7 @@ android.archs = arm64-v8a,armeabi-v7a
 android.allow_backup = True
 android.accept_sdk_license = True
 
-android.add_aars = libs/vosk-android-0.3.47.aar
+android.add_aars = libs/vosk-android-1.3.0.aar
 
 android.enable_androidx = True
 
