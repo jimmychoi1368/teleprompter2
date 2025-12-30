@@ -1,4 +1,4 @@
-name: 题词器APK构建（本地Vosk资源方案）
+name: 题词器APK构建（最终版-本地资源+正确APK路径）
 
 on: [push]
 
@@ -14,7 +14,7 @@ jobs:
       - name: 拉取仓库代码（含本地Vosk资源）
         uses: actions/checkout@v4
 
-      - name: 缓存Buildozer依赖
+      - name: 缓存Buildozer依赖（加速构建）
         uses: actions/cache@v4
         with:
           path: ~/.buildozer
@@ -22,43 +22,36 @@ jobs:
           restore-keys: |
             buildozer-cache-${{ runner.os }}-
 
-      - name: 安装Python 3.10
+      - name: 安装Python 3.10（匹配GitHub环境）
         uses: actions/setup-python@v5
         with:
           python-version: "3.10.12"
 
-      - name: 安装系统必需依赖
+      - name: 安装系统必需依赖（无任何冲突）
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential git zip unzip
           echo "系统依赖安装完成" >> ./build.log
 
-      - name: 安装Python依赖
+      - name: 安装Python依赖（适配Kivy/Vosk）
         run: |
           pip install --upgrade pip
           pip install buildozer==1.5.0 cython==0.29.33 kivy==2.2.1 pyjnius==1.5.0
           echo "Python依赖安装完成" >> ./build.log
 
-      - name: 检查本地Vosk资源
-        run: |
-          echo "检查libs目录..." >> ./build.log
-          ls -la libs/ >> ./build.log 2>&1 || echo "libs目录不存在" >> ./build.log
-          echo "检查assets目录..." >> ./build.log
-          ls -la assets/ >> ./build.log 2>&1 || echo "assets目录不存在" >> ./build.log
-
-      - name: 构建APK（使用本地Vosk资源）
+      - name: 构建APK（使用本地Vosk资源，强制生成日志）
         run: |
           yes | buildozer android debug 2>&1 | tee ./build.log
           echo "APK构建完成" >> ./build.log
 
-      - name: 上传APK文件
+      - name: 上传APK文件（正确路径，必出压缩包）
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: teleprompter-apk
-          path: bin/*.apk
+          path: .buildozer/android/platform/build/outputs/apk/debug/*.apk
 
-      - name: 上传构建日志
+      - name: 上传构建日志（方便排查，始终上传）
         if: always()
         uses: actions/upload-artifact@v4
         with:
