@@ -8,12 +8,12 @@ source.include_patterns = assets/*,libs/*
 source.exclude_dirs = tests,bin,.github,.buildozer,__pycache__
 
 version = 1.0.0
-requirements = python3,kivy==2.2.1,pyjnius==1.5.0
+requirements = python3,kivy==2.2.1,pyjnius==1.5.0,setuptools
 
 orientation = landscape
 fullscreen = 1
 
-android.permissions = RECORD_AUDIO,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE,INTERNET
+android.permissions = RECORD_AUDIO,INTERNET,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE
 
 android.api = 33
 android.minapi = 24
@@ -28,6 +28,7 @@ android.allow_backup = True
 android.accept_sdk_license = True
 
 android.add_aars = libs/vosk-android-1.4.0.aar
+android.add_jars = libs/vosk-android-1.4.0.aar
 android.add_assets = assets/
 
 android.enable_androidx = True
