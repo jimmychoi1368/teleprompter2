@@ -27,8 +27,9 @@ android.archs = arm64-v8a,armeabi-v7a
 android.allow_backup = True
 android.accept_sdk_license = True
 
-android.add_aars = libs/vosk-android-1.4.0.aar
-android.add_jars = libs/vosk-android-1.4.0.aar
+# 修正为0.3.70版本AAR路径
+android.add_aars = libs/vosk-android-0.3.70.aar
+android.add_jars = libs/vosk-android-0.3.70.aar
 android.add_assets = assets/
 
 android.enable_androidx = True
