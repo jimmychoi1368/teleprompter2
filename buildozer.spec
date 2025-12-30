@@ -3,13 +3,13 @@ title = Teleprompter
 package.name = teleprompter
 package.domain = org.voiceprompter
 source.dir = .
-source.include_exts = py,png,jpg,kv,atlas,json,txt
-source.include_patterns = assets/*,assets/vosk_model/*
+source.include_exts = py,png,jpg,kv,atlas,json,txt,aar
+source.include_patterns = assets/*,assets/vosk_model/*,libs/*
 source.exclude_dirs = tests,bin,.github,.buildozer,__pycache__
 source.exclude_patterns = *.pyc,*.pyo
 
 version = 1.0.0
-requirements = python3,kivy==2.2.1,pyjnius,android,pillow
+requirements = python3,kivy==2.2.1,pyjnius==1.5.0,android
 
 presplash.filename = %(source.dir)s/presplash.png
 icon.filename = %(source.dir)s/icon.png
@@ -30,9 +30,7 @@ android.archs = arm64-v8a,armeabi-v7a
 android.allow_backup = True
 android.accept_sdk_license = True
 
-android.gradle_dependencies = com.alphacephei:vosk-android:0.3.47
-
-android.add_aars = 
+android.add_aars = libs/vosk-android-0.3.47.aar
 
 android.enable_androidx = True
 
@@ -42,4 +40,3 @@ p4a.bootstrap = sdl2
 [buildozer]
 log_level = 2
 warn_on_root = 1
-

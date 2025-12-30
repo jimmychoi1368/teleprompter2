@@ -20,49 +20,38 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Set up JDK 17
+    - name: Set up JDK 11
       uses: actions/setup-java@v4
       with:
-        java-version: '17'
+        java-version: '11'
         distribution: 'temurin'
 
-    - name: Install system dependencies
+    - name: Install minimal system dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          python3-pip \
           build-essential \
           git \
-          ffmpeg \
-          libsdl2-dev \
-          libsdl2-image-dev \
-          libsdl2-mixer-dev \
-          libsdl2-ttf-dev \
-          libportmidi-dev \
-          libswscale-dev \
-          libavformat-dev \
-          libavcodec-dev \
-          zlib1g-dev \
-          libgstreamer1.0-dev \
-          gstreamer1.0-plugins-base \
-          gstreamer1.0-plugins-good \
-          libmtdev-dev \
-          xclip \
-          xsel \
-          libtool \
-          pkg-config \
-          autoconf \
-          automake \
-          cmake \
-          libffi-dev \
-          libssl-dev \
           zip \
           unzip \
-          wget
+          wget \
+          curl \
+          autoconf \
+          libtool \
+          pkg-config \
+          libffi-dev \
+          libssl-dev \
+          zlib1g-dev \
+          libncurses5-dev \
+          libncursesw5-dev \
+          liblzma-dev \
+          libsqlite3-dev \
+          libreadline-dev \
+          libbz2-dev
 
-    - name: Install Buildozer and dependencies
+    - name: Install Python dependencies
       run: |
-        pip install --upgrade pip setuptools wheel
+        python -m pip install --upgrade pip setuptools wheel
         pip install buildozer==1.5.0
         pip install cython==0.29.36
         pip install virtualenv
@@ -71,7 +60,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.buildozer
-        key: buildozer-global-${{ hashFiles('buildozer.spec') }}-v3
+        key: buildozer-global-${{ hashFiles('buildozer.spec') }}-v4
         restore-keys: |
           buildozer-global-
 
@@ -79,51 +68,79 @@ jobs:
       uses: actions/cache@v4
       with:
         path: .buildozer
-        key: buildozer-local-${{ hashFiles('buildozer.spec') }}-v3
+        key: buildozer-local-${{ hashFiles('buildozer.spec') }}-v4
         restore-keys: |
           buildozer-local-
 
-    - name: Download Vosk Model (English Small 40MB)
+    - name: Download Vosk AAR Package
+      run: |
+        mkdir -p libs
+        wget -q https://repo1.maven.org/maven2/com/alphacephei/vosk-android/0.3.47/vosk-android-0.3.47.aar -O libs/vosk-android-0.3.47.aar
+        echo "Vosk AAR downloaded:"
+        ls -lh libs/
+
+    - name: Download Vosk Model (English Small)
       run: |
         mkdir -p assets/vosk_model
         cd assets/vosk_model
-        wget -q --show-progress https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip -O model.zip
+        wget -q https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip -O model.zip
         unzip -q model.zip
         mv vosk-model-small-en-us-0.15/* .
         rm -rf vosk-model-small-en-us-0.15 model.zip
+        echo "Vosk model files:"
         ls -la
         cd ../..
 
-    - name: Build APK
+    - name: Build APK with Buildozer
       run: |
-        export ANDROID_SDK_ROOT=$HOME/.buildozer/android/platform/android-sdk
         yes | buildozer android debug 2>&1 | tee build.log
+      env:
+        ANDROID_HOME: ~/.buildozer/android/platform/android-sdk
+        ANDROID_SDK_ROOT: ~/.buildozer/android/platform/android-sdk
 
-    - name: Find and Upload APK
+    - name: Check build result
+      if: always()
       run: |
-        APK_PATH=$(find bin -name "*.apk" 2>/dev/null | head -1)
-        if [ -n "$APK_PATH" ]; then
-          echo "APK_FOUND=true" >> $GITHUB_ENV
-          echo "APK built successfully: $APK_PATH"
-          ls -lh bin/
+        echo "===== Build directory contents ====="
+        ls -la
+        echo ""
+        if [ -d "bin" ]; then
+          echo "===== APK files found ====="
+          ls -lh bin/ || echo "bin directory empty"
+          APK_COUNT=$(find bin -name "*.apk" 2>/dev/null | wc -l)
+          if [ "$APK_COUNT" -gt 0 ]; then
+            echo "SUCCESS: $APK_COUNT APK file(s) built!"
+          else
+            echo "WARNING: No APK files in bin/"
+          fi
         else
-          echo "APK_FOUND=false" >> $GITHUB_ENV
-          echo "Build may have failed. Last 200 lines of log:"
-          tail -200 build.log
+          echo "WARNING: bin directory not found"
         fi
 
     - name: Upload APK artifact
-      if: env.APK_FOUND == 'true'
+      if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: teleprompter-release
+        name: teleprompter-apk
         path: bin/*.apk
+        if-no-files-found: ignore
         retention-days: 90
 
-    - name: Upload build log
+    - name: Upload build log (always)
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: build-log
         path: build.log
+        retention-days: 30
+
+    - name: Upload buildozer log
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: buildozer-logs
+        path: |
+          .buildozer/logs/
+          .buildozer/android/platform/python-for-android/dists/*/logs/
+        if-no-files-found: ignore
         retention-days: 14
