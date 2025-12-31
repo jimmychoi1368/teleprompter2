@@ -66,7 +66,14 @@ jobs:
           pip install buildozer==1.5.0 cython==0.29.33 kivy==2.2.1 pyjnius==1.5.0 setuptools
           echo "✅ Python依赖安装完成" >> ./build.log
 
-      # 步骤9：构建APK（最详细日志）
+      # 步骤9：再次接受SDK协议（同步到Buildozer环境）
+      - name: 再次接受SDK协议
+        run: |
+          export PATH=${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${PATH}
+          yes | sdkmanager --licenses --sdk_root=${ANDROID_SDK_ROOT}
+          echo "✅ SDK协议已再次接受" >> ./build.log
+
+      # 步骤10：构建APK（最详细日志）
       - name: 构建APK
         run: |
           export PATH=${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${PATH}
@@ -75,7 +82,7 @@ jobs:
           if [ -z "$APK_FILE" ]; then echo "❌ APK构建失败" && exit 1; fi
           echo "✅ APK构建成功：$APK_FILE" >> ./build.log
 
-      # 步骤10：上传APK（构建成功/失败都保留文件）
+      # 步骤11：上传APK（构建成功/失败都保留文件）
       - name: 上传APK文件
         if: always()
         uses: actions/upload-artifact@v4
@@ -83,7 +90,7 @@ jobs:
           name: teleprompter-apk
           path: ./**/*.apk
 
-      # 步骤11：上传构建日志（便于排查）
+      # 步骤12：上传构建日志（便于排查）
       - name: 上传构建日志
         if: always()
         uses: actions/upload-artifact@v4

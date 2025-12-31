@@ -24,10 +24,11 @@ android.add_assets = assets/
 # 依赖（稳定版本组合）
 requirements = python3,kivy==2.2.1,pyjnius==1.5.0,setuptools
 
-# 安卓版本（适配Buildozer 1.5.0）
+# 安卓版本（锁定路径+版本，避免冲突）
 android.api = 31
 android.ndk = 23b
 android.build_tools = 33.0.2
+android.sdk_path = /usr/local/lib/android/sdk
 android.disable_update_check = True
 
 [buildozer]
