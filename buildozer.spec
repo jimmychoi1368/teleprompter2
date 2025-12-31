@@ -3,6 +3,7 @@
 title = EnglishTeleprompter
 package.name = teleprompter
 package.domain = org.teleprompter
+version = 1.0.0
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,zip,aar
 
