@@ -16,7 +16,8 @@ jobs:
 
       - name: 检查Vosk资源是否存在
         run: |
-          if [ ! -f "libs/vosk-android-1.4.0.aar" ]; then echo "Vosk AAR缺失" && exit 1; fi
+          # 修正为0.3.70版本AAR路径
+          if [ ! -f "libs/vosk-android-0.3.70.aar" ]; then echo "Vosk AAR缺失" && exit 1; fi
           if [ ! -d "assets/vosk-model-small-en-us-0.15" ]; then echo "Vosk模型缺失" && exit 1; fi
           echo "Vosk资源完整" >> ./build.log
 
@@ -48,7 +49,6 @@ jobs:
       - name: 构建APK（强制生成）
         run: |
           buildozer android debug 2>&1 | tee ./build.log
-          # 检查是否生成APK
           if [ ! -f "$(find . -name "*.apk" | head -n 1)" ]; then echo "APK构建失败" && exit 1; fi
           echo "APK构建成功" >> ./build.log
 
