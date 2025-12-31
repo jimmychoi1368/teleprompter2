@@ -1,99 +1,34 @@
-name: 题词器APK构建（一次性跑通版）
+name: 题词器APK构建（最终稳定版）
 
 on: [push]
 
 jobs:
   build-apk:
     runs-on: ubuntu-22.04
-    env:
-      PYTHON_VERSION: "3.10.12"
-      JDK_VERSION: "11.0.29"
-      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-
+    
     steps:
-      # 步骤1：拉取仓库代码（含Vosk资源）
+      # 步骤1：拉取代码（含Vosk资源）
       - name: 拉取仓库代码
         uses: actions/checkout@v4
 
-      # 步骤2：检查Vosk资源（提前拦截资源缺失问题）
-      - name: 检查Vosk资源完整性
+      # 步骤2：检查Vosk资源（确保路径正确）
+      - name: 检查Vosk资源
         run: |
-          if [ ! -f "libs/vosk-android-0.3.70.aar" ]; then echo "错误：Vosk AAR包缺失" && exit 1; fi
-          if [ ! -d "assets/vosk-model-small-en-us-0.15" ]; then echo "错误：Vosk模型文件夹缺失（需解压zip）" && exit 1; fi
-          echo "✅ Vosk资源完整" >> ./build.log
+          if [ ! -f "libs/vosk-android-0.3.70.aar" ]; then echo "Vosk AAR缺失" && exit 1; fi
+          if [ ! -d "assets/vosk-model-small-en-us-0.15" ]; then echo "Vosk模型文件夹缺失" && exit 1; fi
 
-      # 步骤3：清理旧缓存（避免配置冲突）
-      - name: 清理Buildozer旧缓存
-        run: |
-          rm -rf ~/.buildozer
-          echo "✅ 旧缓存已清理" >> ./build.log
-
-      # 步骤4：安装Python 3.10（稳定版本）
-      - name: 安装Python 3.10
-        uses: actions/setup-python@v5
+      # 步骤3：用预配置的Buildozer环境构建（跳过手动装依赖）
+      - name: 构建APK（预配置环境）
+        uses: mydzor/buildozer-action@v1.5.0
         with:
-          python-version: "3.10.12"
+          command: android debug
+          buildozer_version: 1.5.0
+          python_version: 3.10
 
-      # 步骤5：安装系统依赖（含JDK+安卓基础工具）
-      - name: 安装系统必需依赖
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential git zip unzip openjdk-11-jdk wget
-          echo "✅ 系统依赖安装完成" >> ./build.log
-
-      # 步骤6：安装Android SDK命令行工具（解决sdkmanager找不到的问题）
-      - name: 安装Android SDK命令行工具
-        run: |
-          mkdir -p ${ANDROID_SDK_ROOT}/cmdline-tools
-          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
-          unzip cmdline-tools.zip -d ${ANDROID_SDK_ROOT}/cmdline-tools
-          mv ${ANDROID_SDK_ROOT}/cmdline-tools/cmdline-tools ${ANDROID_SDK_ROOT}/cmdline-tools/latest
-          export PATH=${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${PATH}
-          yes | sdkmanager --licenses --sdk_root=${ANDROID_SDK_ROOT}
-          echo "✅ Android SDK命令行工具安装完成" >> ./build.log
-
-      # 步骤7：安装安卓API 31平台+Platform Tools（匹配Buildozer配置）
-      - name: 安装安卓API 31 SDK平台+Platform Tools
-        run: |
-          export PATH=${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${PATH}
-          sdkmanager "platforms;android-31" "build-tools;33.0.2" "platform-tools" --sdk_root=${ANDROID_SDK_ROOT}
-          echo "✅ 安卓API 31+Build-tools+Platform Tools安装完成" >> ./build.log
-
-      # 步骤8：安装Python依赖（稳定版本组合）
-      - name: 安装Python依赖
-        run: |
-          pip install --upgrade pip
-          pip install buildozer==1.5.0 cython==0.29.33 kivy==2.2.1 pyjnius==1.5.0 setuptools
-          echo "✅ Python依赖安装完成" >> ./build.log
-
-      # 步骤9：再次接受SDK协议（同步到Buildozer环境）
-      - name: 再次接受SDK协议
-        run: |
-          export PATH=${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${PATH}
-          yes | sdkmanager --licenses --sdk_root=${ANDROID_SDK_ROOT}
-          echo "✅ SDK协议已再次接受" >> ./build.log
-
-      # 步骤10：构建APK（最详细日志）
-      - name: 构建APK
-        run: |
-          export PATH=${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${PATH}
-          buildozer android debug -v 2>&1 | tee ./build.log
-          APK_FILE=$(find . -name "*.apk" | head -n 1)
-          if [ -z "$APK_FILE" ]; then echo "❌ APK构建失败" && exit 1; fi
-          echo "✅ APK构建成功：$APK_FILE" >> ./build.log
-
-      # 步骤11：上传APK（构建成功/失败都保留文件）
-      - name: 上传APK文件
+      # 步骤4：上传APK
+      - name: 上传APK
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: teleprompter-apk
-          path: ./**/*.apk
-
-      # 步骤12：上传构建日志（便于排查）
-      - name: 上传构建日志
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: ./build.log
+          path: bin/*.apk
