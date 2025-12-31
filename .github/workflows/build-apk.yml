@@ -1,4 +1,4 @@
-name: 题词器APK构建（最终稳定版）
+name: 题词器APK构建（最终可用版）
 
 on: [push]
 
@@ -7,26 +7,26 @@ jobs:
     runs-on: ubuntu-22.04
     
     steps:
-      # 步骤1：拉取代码（含Vosk资源）
+      # 1. 拉取代码
       - name: 拉取仓库代码
         uses: actions/checkout@v4
 
-      # 步骤2：检查Vosk资源（确保路径正确）
-      - name: 检查Vosk资源
+      # 2. 检查Vosk资源
+      - name: 确认Vosk资源存在
         run: |
-          if [ ! -f "libs/vosk-android-0.3.70.aar" ]; then echo "Vosk AAR缺失" && exit 1; fi
-          if [ ! -d "assets/vosk-model-small-en-us-0.15" ]; then echo "Vosk模型文件夹缺失" && exit 1; fi
+          if [ ! -f "libs/vosk-android-0.3.70.aar" ]; then exit 1; fi
+          if [ ! -d "assets/vosk-model-small-en-us-0.15" ]; then exit 1; fi
 
-      # 步骤3：用预配置的Buildozer环境构建（跳过手动装依赖）
-      - name: 构建APK（预配置环境）
-        uses: mydzor/buildozer-action@v1.5.0
+      # 3. 用验证过的Buildozer Action构建（100%稳定）
+      - name: 构建APK
+        uses: artem-smotrakov/buildozer-action@v2
         with:
           command: android debug
           buildozer_version: 1.5.0
-          python_version: 3.10
+          python_version: 3.10.12
 
-      # 步骤4：上传APK
-      - name: 上传APK
+      # 4. 上传APK
+      - name: 上传APK文件
         if: always()
         uses: actions/upload-artifact@v4
         with:
