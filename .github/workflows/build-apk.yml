@@ -36,10 +36,10 @@ jobs:
           sudo apt-get install -y build-essential git zip unzip openjdk-11-jdk
           echo "系统依赖安装完成" >> ./build.log
 
-      - name: 安装Python依赖（升级Buildozer）
+      - name: 安装Python依赖（改回1.5.0版本）
         run: |
           pip install --upgrade pip
-          pip install buildozer==1.5.1 cython==0.29.33 kivy==2.2.1 pyjnius==1.5.0 setuptools
+          pip install buildozer==1.5.0 cython==0.29.33 kivy==2.2.1 pyjnius==1.5.0 setuptools
           echo "Python依赖安装完成" >> ./build.log
 
       - name: 构建APK（显示详细日志）
