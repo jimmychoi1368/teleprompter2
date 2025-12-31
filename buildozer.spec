@@ -29,6 +29,7 @@ android.api = 31
 android.ndk = 23b
 android.build_tools = 33.0.2
 android.sdk_path = /usr/local/lib/android/sdk
+android.ndk_path = /usr/local/lib/android/sdk/ndk/23b
 android.disable_update_check = True
 
 [buildozer]

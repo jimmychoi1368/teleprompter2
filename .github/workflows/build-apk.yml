@@ -52,12 +52,12 @@ jobs:
           yes | sdkmanager --licenses --sdk_root=${ANDROID_SDK_ROOT}
           echo "✅ Android SDK命令行工具安装完成" >> ./build.log
 
-      # 步骤7：安装安卓API 31平台（匹配Buildozer配置）
-      - name: 安装安卓API 31 SDK平台
+      # 步骤7：安装安卓API 31平台+Platform Tools（匹配Buildozer配置）
+      - name: 安装安卓API 31 SDK平台+Platform Tools
         run: |
           export PATH=${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${PATH}
-          sdkmanager "platforms;android-31" "build-tools;33.0.2" --sdk_root=${ANDROID_SDK_ROOT}
-          echo "✅ 安卓API 31 SDK安装完成" >> ./build.log
+          sdkmanager "platforms;android-31" "build-tools;33.0.2" "platform-tools" --sdk_root=${ANDROID_SDK_ROOT}
+          echo "✅ 安卓API 31+Build-tools+Platform Tools安装完成" >> ./build.log
 
       # 步骤8：安装Python依赖（稳定版本组合）
       - name: 安装Python依赖
