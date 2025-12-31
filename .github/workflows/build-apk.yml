@@ -36,13 +36,18 @@ jobs:
           sudo apt-get install -y build-essential git zip unzip openjdk-11-jdk
           echo "系统依赖安装完成" >> ./build.log
 
-      - name: 安装Python依赖（改回1.5.0版本）
+      - name: 安装安卓API 31 SDK平台（补全Buildozer依赖）
+        run: |
+          yes | sdkmanager "platforms;android-31" "build-tools;33.0.2" --sdk_root=${ANDROID_SDK_ROOT}
+          echo "安卓SDK 31已安装" >> ./build.log
+
+      - name: 安装Python依赖
         run: |
           pip install --upgrade pip
           pip install buildozer==1.5.0 cython==0.29.33 kivy==2.2.1 pyjnius==1.5.0 setuptools
           echo "Python依赖安装完成" >> ./build.log
 
-      - name: 构建APK（显示详细日志）
+      - name: 构建APK（显示最详细日志）
         run: |
           buildozer android debug -v 2>&1 | tee ./build.log
           if [ ! -f "$(find . -name "*.apk" | head -n 1)" ]; then echo "APK构建失败" && exit 1; fi

@@ -38,6 +38,6 @@ p4a.branch = master
 p4a.bootstrap = sdl2
 
 [buildozer]
-log_level = 2
+log_level = 3
 warn_on_root = 1
 buildozer.version = 1.5.0
