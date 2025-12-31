@@ -16,7 +16,6 @@ jobs:
 
       - name: 检查Vosk资源是否存在
         run: |
-          # 修正为0.3.70版本AAR路径
           if [ ! -f "libs/vosk-android-0.3.70.aar" ]; then echo "Vosk AAR缺失" && exit 1; fi
           if [ ! -d "assets/vosk-model-small-en-us-0.15" ]; then echo "Vosk模型缺失" && exit 1; fi
           echo "Vosk资源完整" >> ./build.log

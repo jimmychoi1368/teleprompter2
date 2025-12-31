@@ -15,11 +15,12 @@ fullscreen = 1
 
 android.permissions = RECORD_AUDIO,INTERNET,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE
 
-android.api = 33
+# 修正安卓API和NDK版本（适配Buildozer 1.5.0）
+android.api = 31
 android.minapi = 24
-android.sdk = 33
-android.ndk = 25b
-android.ndk_api = 24
+android.sdk = 31
+android.ndk = 23b
+android.ndk_api = 21
 android.build_tools = 33.0.2
 
 android.archs = arm64-v8a,armeabi-v7a
@@ -27,7 +28,6 @@ android.archs = arm64-v8a,armeabi-v7a
 android.allow_backup = True
 android.accept_sdk_license = True
 
-# 修正为0.3.70版本AAR路径
 android.add_aars = libs/vosk-android-0.3.70.aar
 android.add_jars = libs/vosk-android-0.3.70.aar
 android.add_assets = assets/
