@@ -15,7 +15,6 @@ fullscreen = 1
 
 android.permissions = RECORD_AUDIO,INTERNET,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE
 
-# 修正安卓API和NDK版本（适配Buildozer 1.5.0）
 android.api = 31
 android.minapi = 24
 android.sdk = 31
@@ -41,3 +40,4 @@ p4a.bootstrap = sdl2
 [buildozer]
 log_level = 2
 warn_on_root = 1
+buildozer.version = 1.5.1
