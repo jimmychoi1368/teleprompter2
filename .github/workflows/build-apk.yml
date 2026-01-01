@@ -1,4 +1,4 @@
-name: 英语提词器APK构建（Docker终极方案）
+name: 英语提词器APK构建
 
 on: [push, workflow_dispatch]
 
@@ -12,54 +12,17 @@ jobs:
 
       - name: 检查Vosk资源
         run: |
-          echo "检查必要文件..."
-          ls -la libs/
-          ls -la assets/
-          if [ ! -f "libs/vosk-android-0.3.70.aar" ]; then
-            echo "错误：缺少Vosk AAR文件"
-            exit 1
-          fi
-          if [ ! -d "assets/vosk-model-small-en-us-0.15" ]; then
-            echo "错误：缺少Vosk模型文件"
-            exit 1
-          fi
-          echo "✓ 资源文件检查通过"
+          ls libs/
+          ls assets/
+          test -f "libs/vosk-android-0.3.70.aar"
+          test -d "assets/vosk-model-small-en-us-0.15"
+          echo "资源文件检查通过"
 
-      - name: 使用Docker构建APK（非交互式）
+      - name: 使用Docker构建APK
         run: |
-          echo "开始非交互式Docker构建..."
+          echo "开始构建APK..."
           
-          # 创建构建脚本，避免交互式提示
-          cat > build_apk.sh << 'EOF'
-#!/bin/bash
-set -e
-
-# 设置环境变量允许root运行buildozer
-export BUILDOZER_ALLOW_ROOT=1
-
-# 安装buildozer
-pip3 install buildozer==1.5.0 cython==0.29.28
-
-# 进入项目目录
-cd /app
-
-# 非交互式运行buildozer（使用-y参数）
-echo "y" | buildozer -y android debug
-
-# 检查是否生成APK
-if ls bin/*.apk 1> /dev/null 2>&1; then
-  echo "✅ APK构建成功！"
-  ls -lh bin/*.apk
-else
-  echo "❌ APK构建失败"
-  exit 1
-fi
-EOF
-
-          chmod +x build_apk.sh
-          
-          # 方法1：使用ubuntu镜像，运行我们的脚本
-          echo "使用ubuntu:22.04镜像构建..."
+          # 直接使用ubuntu镜像，安装必要工具
           docker run --rm \
             -v $PWD:/app \
             -w /app \
@@ -67,33 +30,16 @@ EOF
             /bin/bash -c "
               apt-get update && \
               apt-get install -y python3-pip git wget zip unzip openjdk-11-jdk && \
-              pip3 install --upgrade pip && \
-              /app/build_apk.sh
-            " 2>&1 | tee docker_build.log
+              pip3 install buildozer==1.5.0 cython==0.29.28 && \
+              echo 'y' | BUILDOZER_ALLOW_ROOT=1 buildozer -y android debug
+            "
           
-          # 方法2：如果上面失败，尝试使用alpine镜像
-          if ! ls bin/*.apk 1> /dev/null 2>&1; then
-            echo "方法1失败，尝试Alpine Linux..."
-            docker run --rm \
-              -v $PWD:/app \
-              -w /app \
-              alpine:latest \
-              /bin/sh -c "
-                apk add --no-cache python3 py3-pip git wget zip unzip openjdk11 && \
-                pip3 install buildozer==1.5.0 cython==0.29.28 && \
-                export BUILDOZER_ALLOW_ROOT=1 && \
-                echo 'y' | buildozer -y android debug
-              " 2>&1 | tee docker_build2.log
-          fi
-          
-          # 最终检查
+          # 检查是否生成APK
           if ls bin/*.apk 1> /dev/null 2>&1; then
             echo "✅ APK构建成功！"
             ls -lh bin/*.apk
           else
             echo "❌ APK构建失败"
-            echo "构建日志最后100行："
-            tail -100 docker_build*.log 2>/dev/null || echo "无日志文件"
             exit 1
           fi
 
@@ -102,4 +48,3 @@ EOF
         with:
           name: teleprompter-apk
           path: bin/*.apk
-          retention-days: 7
