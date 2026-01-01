@@ -87,35 +87,43 @@ jobs:
           echo "Android SDK安装完成"
           echo "SDK根目录：$ANDROID_SDK_ROOT"
 
-      # 6. 构建APK
+      # 6. 构建APK - 修复版
       - name: 构建APK
         env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
           ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
           echo "开始构建APK..."
-          echo "当前目录："
-          pwd
-          echo "文件列表："
-          ls -la
           
-          # 设置Buildozer配置
+          # 设置PATH
           export PATH=$PATH:~/.local/bin
           
-          # 清理之前的构建
-          ~/.local/bin/buildozer android clean
+          # 先初始化Buildozer环境（不执行clean）
+          echo "初始化Buildozer环境..."
+          buildozer android update 2>&1 | tee init.log
           
-          # 开始构建（增加详细日志）
-          ~/.local/bin/buildozer -v android debug 2>&1 | tee build.log
+          # 检查初始化是否成功
+          if [ -d ".buildozer/android/platform" ]; then
+            echo "✓ Buildozer环境初始化成功"
+          else
+            echo "✗ Buildozer环境初始化失败"
+            echo "初始化日志："
+            cat init.log
+            exit 1
+          fi
           
-          # 检查是否生成APK
+          # 开始构建（跳过clean步骤，避免删除刚初始化的环境）
+          echo "开始构建APK..."
+          buildozer -v android debug 2>&1 | tee build_output.txt
+          
+          # 检查结果
           if ls bin/*.apk 1> /dev/null 2>&1; then
-            echo "✓ APK构建成功！"
+            echo "✅ APK构建成功！"
             ls -lh bin/*.apk
           else
-            echo "✗ APK构建失败"
-            echo "构建日志最后100行："
-            tail -100 build.log
+            echo "❌ APK构建失败"
+            echo "最后50行构建日志："
+            tail -50 build_output.txt
             exit 1
           fi
 
