@@ -1,4 +1,4 @@
-name: 英语提词器APK构建（最终版）
+name: 英语提词器APK构建
 
 on: [push, workflow_dispatch]
 
@@ -7,120 +7,57 @@ jobs:
     runs-on: ubuntu-22.04
     
     steps:
-      # 1. 拉取代码
       - name: 拉取仓库代码
         uses: actions/checkout@v4
 
-      # 2. 检查资源文件
       - name: 检查Vosk资源
         run: |
-          echo "检查必要文件..."
-          ls -la libs/
-          ls -la assets/
-          if [ ! -f "libs/vosk-android-0.3.70.aar" ]; then
-            echo "错误：缺少Vosk AAR文件"
-            exit 1
-          fi
-          if [ ! -d "assets/vosk-model-small-en-us-0.15" ]; then
-            echo "错误：缺少Vosk模型文件"
-            exit 1
-          fi
-          echo "✓ 资源文件检查通过"
+          ls libs/
+          ls assets/
+          test -f "libs/vosk-android-0.3.70.aar"
+          test -d "assets/vosk-model-small-en-us-0.15"
+          echo "资源文件检查通过"
 
-      # 3. 安装基础依赖
       - name: 安装基础依赖
         run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-pip python3-venv git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev ninja-build wget curl
+          sudo apt update
+          sudo apt install -y python3-pip git wget zip unzip openjdk-11-jdk
 
-      # 4. 安装Java（使用OpenJDK 11）
-      - name: 安装Java
-        run: |
-          sudo apt-get install -y openjdk-11-jdk
-          echo "Java版本："
-          java -version
-
-      # 5. 安装Android SDK
       - name: 安装Android SDK
         run: |
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-          unzip -q commandlinetools-linux-9477386_latest.zip
+          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+          unzip commandlinetools-linux-9477386_latest.zip
           rm commandlinetools-linux-9477386_latest.zip
-          mkdir -p android-sdk
+          mkdir android-sdk
           mv cmdline-tools android-sdk/
           echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
           echo "ANDROID_HOME=$PWD/android-sdk" >> $GITHUB_ENV
           echo "PATH=$PATH:$PWD/android-sdk/cmdline-tools/bin" >> $GITHUB_ENV
-          echo "Android SDK目录结构："
-          ls -la android-sdk/
 
-      # 6. 接受Android许可证
       - name: 接受Android许可证
         run: |
-          sudo apt-get install -y expect
-          cat > accept_licenses.exp << 'EOF'
-#!/usr/bin/expect -f
-set timeout -1
-spawn $env(ANDROID_SDK_ROOT)/cmdline-tools/bin/sdkmanager --licenses
-expect {
-  "y/N" { send "y\r"; exp_continue }
-  eof
-}
-EOF
-          chmod +x accept_licenses.exp
-          ./accept_licenses.exp
-          echo "许可证接受完成"
+          # 使用echo自动输入y
+          echo "y" | $ANDROID_SDK_ROOT/cmdline-tools/bin/sdkmanager --licenses
 
-      # 7. 安装Android组件
       - name: 安装Android组件
         run: |
           $ANDROID_SDK_ROOT/cmdline-tools/bin/sdkmanager "platform-tools"
           $ANDROID_SDK_ROOT/cmdline-tools/bin/sdkmanager "platforms;android-31"
           $ANDROID_SDK_ROOT/cmdline-tools/bin/sdkmanager "build-tools;33.0.2"
           $ANDROID_SDK_ROOT/cmdline-tools/bin/sdkmanager "ndk;23.1.7779620"
-          echo "Android组件安装完成"
-          ls $ANDROID_SDK_ROOT/build-tools/
 
-      # 8. 安装Buildozer和依赖
       - name: 安装Buildozer
         run: |
-          python3 -m pip install --user --upgrade pip
-          python3 -m pip install --user buildozer==1.5.0
-          python3 -m pip install --user cython==0.29.28
-          echo "Buildozer版本："
-          ~/.local/bin/buildozer --version
+          pip3 install buildozer==1.5.0
+          pip3 install cython==0.29.28
 
-      # 9. 准备构建
-      - name: 准备构建
-        run: |
-          echo "PATH=$PATH:~/.local/bin" >> $GITHUB_ENV
-          mkdir -p .buildozer/android/platform
-
-      # 10. 执行构建
       - name: 构建APK
         run: |
-          echo "开始构建APK..."
-          echo "当前目录："
-          pwd
-          echo "环境变量："
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          buildozer android debug 2>&1 | tee build.log
-          if ls bin/*.apk 1> /dev/null 2>&1; then
-            echo "✅ APK构建成功！"
-            ls -lh bin/*.apk
-          else
-            echo "❌ APK构建失败"
-            echo "构建日志最后100行："
-            tail -100 build.log
-            exit 1
-          fi
+          export PATH=$PATH:~/.local/bin
+          buildozer android debug
 
-      # 11. 上传APK
       - name: 上传APK文件
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: teleprompter-apk
           path: bin/*.apk
-          retention-days: 7
