@@ -25,48 +25,74 @@ jobs:
           fi
           echo "✓ 资源文件检查通过"
 
-      - name: 使用Docker构建APK
+      - name: 使用Docker构建APK（非交互式）
         run: |
-          echo "开始使用Docker构建APK..."
+          echo "开始非交互式Docker构建..."
           
-          # 方法1：尝试kivy/buildozer官方镜像（标签改为latest）
-          echo "尝试kivy/buildozer:latest镜像..."
+          # 创建构建脚本，避免交互式提示
+          cat > build_apk.sh << 'EOF'
+#!/bin/bash
+set -e
+
+# 设置环境变量允许root运行buildozer
+export BUILDOZER_ALLOW_ROOT=1
+
+# 安装buildozer
+pip3 install buildozer==1.5.0 cython==0.29.28
+
+# 进入项目目录
+cd /app
+
+# 非交互式运行buildozer（使用-y参数）
+echo "y" | buildozer -y android debug
+
+# 检查是否生成APK
+if ls bin/*.apk 1> /dev/null 2>&1; then
+  echo "✅ APK构建成功！"
+  ls -lh bin/*.apk
+else
+  echo "❌ APK构建失败"
+  exit 1
+fi
+EOF
+
+          chmod +x build_apk.sh
+          
+          # 方法1：使用ubuntu镜像，运行我们的脚本
+          echo "使用ubuntu:22.04镜像构建..."
           docker run --rm \
             -v $PWD:/app \
             -w /app \
-            kivy/buildozer:latest \
-            buildozer android debug 2>&1 | tee docker_build.log || echo "镜像1失败，尝试镜像2..."
+            ubuntu:22.04 \
+            /bin/bash -c "
+              apt-get update && \
+              apt-get install -y python3-pip git wget zip unzip openjdk-11-jdk && \
+              pip3 install --upgrade pip && \
+              /app/build_apk.sh
+            " 2>&1 | tee docker_build.log
           
-          # 方法2：如果第一个镜像失败，尝试beevelop/android镜像
+          # 方法2：如果上面失败，尝试使用alpine镜像
           if ! ls bin/*.apk 1> /dev/null 2>&1; then
-            echo "尝试beevelop/android:latest镜像..."
+            echo "方法1失败，尝试Alpine Linux..."
             docker run --rm \
               -v $PWD:/app \
               -w /app \
-              beevelop/android:latest \
-              /bin/bash -c "pip install buildozer==1.5.0 cython==0.29.28 && buildozer android debug" 2>&1 | tee docker_build2.log || echo "镜像2失败，尝试镜像3..."
-          fi
-          
-          # 方法3：如果前两个都失败，使用ubuntu镜像手动安装
-          if ! ls bin/*.apk 1> /dev/null 2>&1; then
-            echo "使用ubuntu手动安装环境..."
-            docker run --rm \
-              -v $PWD:/app \
-              -w /app \
-              ubuntu:22.04 \
-              /bin/bash -c "
-                apt-get update && apt-get install -y python3-pip git wget zip unzip openjdk-11-jdk && \
+              alpine:latest \
+              /bin/sh -c "
+                apk add --no-cache python3 py3-pip git wget zip unzip openjdk11 && \
                 pip3 install buildozer==1.5.0 cython==0.29.28 && \
-                buildozer android debug
-              " 2>&1 | tee docker_build3.log
+                export BUILDOZER_ALLOW_ROOT=1 && \
+                echo 'y' | buildozer -y android debug
+              " 2>&1 | tee docker_build2.log
           fi
           
-          # 检查是否生成APK
+          # 最终检查
           if ls bin/*.apk 1> /dev/null 2>&1; then
             echo "✅ APK构建成功！"
             ls -lh bin/*.apk
           else
-            echo "❌ APK构建失败，查看日志："
+            echo "❌ APK构建失败"
+            echo "构建日志最后100行："
             tail -100 docker_build*.log 2>/dev/null || echo "无日志文件"
             exit 1
           fi
