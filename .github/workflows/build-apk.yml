@@ -18,23 +18,28 @@ jobs:
           test -d "assets/vosk-model-small-en-us-0.15"
           echo "资源文件检查通过"
 
-      - name: 使用Docker构建APK
+      - name: 安装Python和Buildozer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip git zip unzip
+          pip3 install buildozer==1.5.0 cython==0.29.28
+
+      - name: 设置Android SDK
+        run: |
+          chmod +x android-setup.sh
+          ./android-setup.sh
+          echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
+          echo "ANDROID_HOME=$PWD/android-sdk" >> $GITHUB_ENV
+
+      - name: 构建APK
+        env:
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
+          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
+          BUILDOZER_ALLOW_ROOT: 1
         run: |
           echo "开始构建APK..."
-          
-          # 直接使用ubuntu镜像，安装必要工具
-          docker run --rm \
-            -v $PWD:/app \
-            -w /app \
-            ubuntu:22.04 \
-            /bin/bash -c "
-              apt-get update && \
-              apt-get install -y python3-pip git wget zip unzip openjdk-11-jdk && \
-              pip3 install buildozer==1.5.0 cython==0.29.28 && \
-              echo 'y' | BUILDOZER_ALLOW_ROOT=1 buildozer -y android debug
-            "
-          
-          # 检查是否生成APK
+          buildozer android clean || true
+          echo "y" | buildozer -y android debug
           if ls bin/*.apk 1> /dev/null 2>&1; then
             echo "✅ APK构建成功！"
             ls -lh bin/*.apk
@@ -44,6 +49,7 @@ jobs:
           fi
 
       - name: 上传APK文件
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: teleprompter-apk
