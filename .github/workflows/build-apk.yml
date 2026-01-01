@@ -28,16 +28,27 @@ jobs:
           wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
           unzip commandlinetools-linux-9477386_latest.zip
           rm commandlinetools-linux-9477386_latest.zip
-          mkdir android-sdk
-          mv cmdline-tools android-sdk/
+          
+          # 创建正确的目录结构
+          mkdir -p android-sdk/cmdline-tools
+          mv cmdline-tools/* android-sdk/cmdline-tools/
+          rmdir cmdline-tools
+          
+          # 设置环境变量
           echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
           echo "ANDROID_HOME=$PWD/android-sdk" >> $GITHUB_ENV
           echo "PATH=$PATH:$PWD/android-sdk/cmdline-tools/bin" >> $GITHUB_ENV
+          
+          echo "Android SDK目录结构："
+          ls -la android-sdk/
 
       - name: 接受Android许可证
         run: |
-          # 使用echo自动输入y
-          echo "y" | $ANDROID_SDK_ROOT/cmdline-tools/bin/sdkmanager --licenses
+          # 先检查sdkmanager是否存在
+          ls -la $ANDROID_SDK_ROOT/cmdline-tools/bin/
+          
+          # 使用--sdk_root参数指定SDK根目录
+          echo "y" | $ANDROID_SDK_ROOT/cmdline-tools/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses
 
       - name: 安装Android组件
         run: |
