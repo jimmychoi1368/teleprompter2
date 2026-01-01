@@ -17,42 +17,21 @@ jobs:
           echo "检查必要文件..."
           ls -la libs/
           ls -la assets/
-          
           if [ ! -f "libs/vosk-android-0.3.70.aar" ]; then
             echo "错误：缺少Vosk AAR文件"
             exit 1
           fi
-          
           if [ ! -d "assets/vosk-model-small-en-us-0.15" ]; then
             echo "错误：缺少Vosk模型文件"
             exit 1
           fi
-          
           echo "✓ 资源文件检查通过"
 
       # 3. 安装基础依赖
       - name: 安装基础依赖
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            python3-pip \
-            python3-venv \
-            git \
-            zip \
-            unzip \
-            autoconf \
-            libtool \
-            pkg-config \
-            zlib1g-dev \
-            libncurses5-dev \
-            libncursesw5-dev \
-            libtinfo5 \
-            cmake \
-            libffi-dev \
-            libssl-dev \
-            ninja-build \
-            wget \
-            curl
+          sudo apt-get install -y python3-pip python3-venv git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev ninja-build wget curl
 
       # 4. 安装Java（使用OpenJDK 11）
       - name: 安装Java
@@ -61,34 +40,24 @@ jobs:
           echo "Java版本："
           java -version
 
-      # 5. 安装Android SDK - 使用最简单的方法
+      # 5. 安装Android SDK
       - name: 安装Android SDK
         run: |
-          # 下载Android命令行工具
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
           unzip -q commandlinetools-linux-9477386_latest.zip
           rm commandlinetools-linux-9477386_latest.zip
-          
-          # 创建正确的目录结构
           mkdir -p android-sdk
           mv cmdline-tools android-sdk/
-          
-          # 设置环境变量
           echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
           echo "ANDROID_HOME=$PWD/android-sdk" >> $GITHUB_ENV
           echo "PATH=$PATH:$PWD/android-sdk/cmdline-tools/bin" >> $GITHUB_ENV
-          
           echo "Android SDK目录结构："
           ls -la android-sdk/
 
       # 6. 接受Android许可证
       - name: 接受Android许可证
         run: |
-          # 使用expect自动接受所有许可证
-          echo "安装expect工具..."
           sudo apt-get install -y expect
-          
-          # 创建expect脚本
           cat > accept_licenses.exp << 'EOF'
 #!/usr/bin/expect -f
 set timeout -1
@@ -98,29 +67,18 @@ expect {
   eof
 }
 EOF
-          
           chmod +x accept_licenses.exp
           ./accept_licenses.exp
-          
           echo "许可证接受完成"
 
       # 7. 安装Android组件
       - name: 安装Android组件
         run: |
-          # 安装platform-tools
           $ANDROID_SDK_ROOT/cmdline-tools/bin/sdkmanager "platform-tools"
-          
-          # 安装Android SDK平台
           $ANDROID_SDK_ROOT/cmdline-tools/bin/sdkmanager "platforms;android-31"
-          
-          # 安装构建工具33.0.2
           $ANDROID_SDK_ROOT/cmdline-tools/bin/sdkmanager "build-tools;33.0.2"
-          
-          # 安装NDK 23b
           $ANDROID_SDK_ROOT/cmdline-tools/bin/sdkmanager "ndk;23.1.7779620"
-          
           echo "Android组件安装完成"
-          echo "构建工具版本："
           ls $ANDROID_SDK_ROOT/build-tools/
 
       # 8. 安装Buildozer和依赖
@@ -129,17 +87,13 @@ EOF
           python3 -m pip install --user --upgrade pip
           python3 -m pip install --user buildozer==1.5.0
           python3 -m pip install --user cython==0.29.28
-          
           echo "Buildozer版本："
           ~/.local/bin/buildozer --version
 
       # 9. 准备构建
       - name: 准备构建
         run: |
-          # 设置PATH
           echo "PATH=$PATH:~/.local/bin" >> $GITHUB_ENV
-          
-          # 创建必要的目录
           mkdir -p .buildozer/android/platform
 
       # 10. 执行构建
@@ -151,11 +105,7 @@ EOF
           echo "环境变量："
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
           echo "ANDROID_HOME=$ANDROID_HOME"
-          
-          # 使用Buildozer构建
           buildozer android debug 2>&1 | tee build.log
-          
-          # 检查是否生成APK
           if ls bin/*.apk 1> /dev/null 2>&1; then
             echo "✅ APK构建成功！"
             ls -lh bin/*.apk
