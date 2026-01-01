@@ -17,5 +17,8 @@ android.ndk = 23b
 android.build_tools = 33.0.2
 
 [buildozer]
-log_level = 3
+log_level = 2
 warn_on_root = 1
+build_dir = ./.buildozer
+bin_dir = ./bin
+allow_root = 1

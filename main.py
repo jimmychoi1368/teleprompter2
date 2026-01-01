@@ -86,25 +86,16 @@ class VoskRecognizer:
             # 获取应用内部存储路径
             PythonActivity = autoclass('org.kivy.android.PythonActivity')
             activity = PythonActivity.mActivity
-            
-            # 模型路径（assets目录会被解压到files目录）
             files_dir = str(activity.getFilesDir().getAbsolutePath())
-            full_model_path = os.path.join(files_dir, 'app', 'assets', 'vosk_model')
             
-            # 如果模型在assets中，尝试其他路径
-            if not os.path.exists(full_model_path):
-                # 尝试直接访问
-                for base in [files_dir, '/data/data/org.voiceprompter.teleprompter/files']:
-                    for sub in ['app/assets/vosk_model', 'assets/vosk_model', 'vosk_model']:
-                        test_path = os.path.join(base, sub)
-                        if os.path.exists(test_path):
-                            full_model_path = test_path
-                            break
-            
-            print(f"[Vosk] Loading model from: {full_model_path}")
+            # 简化：Vosk模型在assets目录中，构建时已打包
+            # 在Android上，assets/vosk-model-small-en-us-0.15会被解压到可访问位置
+            # Vosk Android SDK会自动在assets目录查找模型
+            model_path = "vosk-model-small-en-us-0.15"
+            print(f"[Vosk] 使用模型: {model_path}")
             
             # 初始化模型
-            self.model = self.Model(full_model_path)
+            self.model = self.Model(model_path)
             self.recognizer = self.Recognizer(self.model, 16000.0)
             
             print("[Vosk] Model loaded successfully")
