@@ -5,7 +5,7 @@ echo "设置Android SDK..."
 
 # 使用sudo更新和安装包
 sudo apt-get update
-sudo apt-get install -y wget unzip openjdk-11-jdk
+sudo apt-get install -y wget unzip openjdk-11-jdk autoconf autoconf-archive libtool
 
 # 下载Android命令行工具
 wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip

@@ -11,10 +11,14 @@ android.permissions = RECORD_AUDIO, INTERNET, WRITE_EXTERNAL_STORAGE, READ_EXTER
 android.add_aars = libs/vosk-android-0.3.70.aar
 android.add_jars = libs/vosk-android-0.3.70.aar
 android.add_assets = assets/
-requirements = python3,kivy==2.2.1,pyjnius==1.5.0,setuptools
+requirements = python3,kivy==2.2.1,pyjnius==1.5.0,setuptools,libffi
+android.sdk = 31
+android.minapi = 21
 android.api = 31
 android.ndk = 25b
 android.build_tools = 33.0.2
+p4a.source_dir = .
+p4a.extra_args = --hook p4a_override.py
 
 [buildozer]
 log_level = 2
