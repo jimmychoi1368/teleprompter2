@@ -13,7 +13,7 @@ android.add_jars = libs/vosk-android-0.3.70.aar
 android.add_assets = assets/
 requirements = python3,kivy==2.2.1,pyjnius==1.5.0,setuptools
 android.api = 31
-android.ndk = 23b
+android.ndk = 25b
 android.build_tools = 33.0.2
 
 [buildozer]
