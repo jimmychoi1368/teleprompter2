@@ -58,29 +58,36 @@ jobs:
           echo "Buildozer版本："
           ~/.local/bin/buildozer --version
 
-      # 5. 设置Android环境
+      # 5. 设置Android SDK/NDK - 修复版
       - name: 设置Android SDK/NDK
         run: |
+          # 创建Android目录
           mkdir -p ~/android
-          cd ~/android
           
-          # 下载命令行工具
+          # 下载命令行工具到正确的目录结构
+          cd ~/android
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-          unzip -q commandlinetools-linux-9477386_latest.zip
+          mkdir -p cmdline-tools/latest
+          unzip -q commandlinetools-linux-9477386_latest.zip -d cmdline-tools/latest
           rm commandlinetools-linux-9477386_latest.zip
           
           # 设置环境变量
           echo "ANDROID_HOME=$HOME/android" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$HOME/android" >> $GITHUB_ENV
-          echo "PATH=$PATH:$HOME/android/cmdline-tools/bin" >> $GITHUB_ENV
+          echo "PATH=$PATH:$HOME/android/cmdline-tools/latest/bin" >> $GITHUB_ENV
           
-          # 接受许可证
-          yes | $HOME/android/cmdline-tools/bin/sdkmanager --licenses
+          # 接受许可证 - 使用正确的sdkmanager路径
+          yes | $HOME/android/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses
           
           # 安装必要组件
-          $HOME/android/cmdline-tools/bin/sdkmanager "platform-tools" "platforms;android-31" "build-tools;33.0.2" "ndk;23.1.7779620"
+          $HOME/android/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT \
+            "platform-tools" \
+            "platforms;android-31" \
+            "build-tools;33.0.2" \
+            "ndk;23.1.7779620"
           
           echo "Android SDK安装完成"
+          echo "SDK路径: $ANDROID_SDK_ROOT"
 
       # 6. 构建APK
       - name: 构建APK
