@@ -27,20 +27,47 @@ jobs:
 
       - name: 使用Docker构建APK
         run: |
-          # 使用已经配置好Android环境的Docker容器
-          # 这个镜像已经解决了所有许可证问题
+          echo "开始使用Docker构建APK..."
+          
+          # 方法1：尝试kivy/buildozer官方镜像（标签改为latest）
+          echo "尝试kivy/buildozer:latest镜像..."
           docker run --rm \
             -v $PWD:/app \
             -w /app \
-            kivy/buildozer:stable \
-            buildozer android debug
+            kivy/buildozer:latest \
+            buildozer android debug 2>&1 | tee docker_build.log || echo "镜像1失败，尝试镜像2..."
+          
+          # 方法2：如果第一个镜像失败，尝试beevelop/android镜像
+          if ! ls bin/*.apk 1> /dev/null 2>&1; then
+            echo "尝试beevelop/android:latest镜像..."
+            docker run --rm \
+              -v $PWD:/app \
+              -w /app \
+              beevelop/android:latest \
+              /bin/bash -c "pip install buildozer==1.5.0 cython==0.29.28 && buildozer android debug" 2>&1 | tee docker_build2.log || echo "镜像2失败，尝试镜像3..."
+          fi
+          
+          # 方法3：如果前两个都失败，使用ubuntu镜像手动安装
+          if ! ls bin/*.apk 1> /dev/null 2>&1; then
+            echo "使用ubuntu手动安装环境..."
+            docker run --rm \
+              -v $PWD:/app \
+              -w /app \
+              ubuntu:22.04 \
+              /bin/bash -c "
+                apt-get update && apt-get install -y python3-pip git wget zip unzip openjdk-11-jdk && \
+                pip3 install buildozer==1.5.0 cython==0.29.28 && \
+                buildozer android debug
+              " 2>&1 | tee docker_build3.log
+          fi
           
           # 检查是否生成APK
           if ls bin/*.apk 1> /dev/null 2>&1; then
             echo "✅ APK构建成功！"
             ls -lh bin/*.apk
           else
-            echo "❌ APK构建失败"
+            echo "❌ APK构建失败，查看日志："
+            tail -100 docker_build*.log 2>/dev/null || echo "无日志文件"
             exit 1
           fi
 
