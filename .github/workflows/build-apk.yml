@@ -1,4 +1,4 @@
-name: 英语提词器APK构建（稳定版）
+name: 英语提词器APK构建（最终版）
 
 on: [push, workflow_dispatch]
 
@@ -11,30 +11,35 @@ jobs:
       - name: 拉取仓库代码
         uses: actions/checkout@v4
 
-      # 2. 检查Vosk资源
-      - name: 确认Vosk资源存在
+      # 2. 检查资源文件
+      - name: 检查Vosk资源
         run: |
-          echo "检查Vosk资源..."
+          echo "检查必要文件..."
+          ls -la libs/
+          ls -la assets/
+          
           if [ ! -f "libs/vosk-android-0.3.70.aar" ]; then
             echo "错误：缺少Vosk AAR文件"
             exit 1
           fi
+          
           if [ ! -d "assets/vosk-model-small-en-us-0.15" ]; then
             echo "错误：缺少Vosk模型文件"
             exit 1
           fi
-          echo "✓ Vosk资源检查通过"
+          
+          echo "✓ 资源文件检查通过"
 
-      # 3. 安装系统依赖
-      - name: 安装系统依赖
+      # 3. 安装基础依赖
+      - name: 安装基础依赖
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             python3-pip \
+            python3-venv \
             git \
             zip \
             unzip \
-            openjdk-11-jdk \
             autoconf \
             libtool \
             pkg-config \
@@ -45,28 +50,26 @@ jobs:
             cmake \
             libffi-dev \
             libssl-dev \
-            ninja-build
+            ninja-build \
+            wget \
+            curl
+
+      # 4. 安装Java（使用OpenJDK 11）
+      - name: 安装Java
+        run: |
+          sudo apt-get install -y openjdk-11-jdk
           echo "Java版本："
           java -version
 
-      # 4. 安装Python依赖
-      - name: 安装Python依赖
+      # 5. 安装Android SDK - 使用最简单的方法
+      - name: 安装Android SDK
         run: |
-          python3 --version
-          pip3 install --user buildozer==1.5.0
-          pip3 install --user cython==0.29.28
-          echo "Buildozer版本："
-          ~/.local/bin/buildozer --version
-
-      # 5. 设置Android SDK/NDK - 简化版
-      - name: 设置Android SDK/NDK
-        run: |
-          # 安装Android SDK和命令行工具的最简单方法
+          # 下载Android命令行工具
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
           unzip -q commandlinetools-linux-9477386_latest.zip
           rm commandlinetools-linux-9477386_latest.zip
           
-          # 移动cmdline-tools到正确位置
+          # 创建正确的目录结构
           mkdir -p android-sdk
           mv cmdline-tools android-sdk/
           
@@ -75,59 +78,95 @@ jobs:
           echo "ANDROID_HOME=$PWD/android-sdk" >> $GITHUB_ENV
           echo "PATH=$PATH:$PWD/android-sdk/cmdline-tools/bin" >> $GITHUB_ENV
           
-          # 接受许可证
-          echo "y" | ./android-sdk/cmdline-tools/bin/sdkmanager --sdk_root=./android-sdk --licenses
-          
-          # 安装必要组件（一个一个安装，避免超时）
-          ./android-sdk/cmdline-tools/bin/sdkmanager --sdk_root=./android-sdk "platform-tools"
-          ./android-sdk/cmdline-tools/bin/sdkmanager --sdk_root=./android-sdk "platforms;android-31"
-          ./android-sdk/cmdline-tools/bin/sdkmanager --sdk_root=./android-sdk "build-tools;33.0.2"
-          ./android-sdk/cmdline-tools/bin/sdkmanager --sdk_root=./android-sdk "ndk;23.1.7779620"
-          
-          echo "Android SDK安装完成"
-          echo "SDK根目录：$ANDROID_SDK_ROOT"
+          echo "Android SDK目录结构："
+          ls -la android-sdk/
 
-      # 6. 构建APK - 修复版
+      # 6. 接受Android许可证
+      - name: 接受Android许可证
+        run: |
+          # 使用expect自动接受所有许可证
+          echo "安装expect工具..."
+          sudo apt-get install -y expect
+          
+          # 创建expect脚本
+          cat > accept_licenses.exp << 'EOF'
+#!/usr/bin/expect -f
+set timeout -1
+spawn $env(ANDROID_SDK_ROOT)/cmdline-tools/bin/sdkmanager --licenses
+expect {
+  "y/N" { send "y\r"; exp_continue }
+  eof
+}
+EOF
+          
+          chmod +x accept_licenses.exp
+          ./accept_licenses.exp
+          
+          echo "许可证接受完成"
+
+      # 7. 安装Android组件
+      - name: 安装Android组件
+        run: |
+          # 安装platform-tools
+          $ANDROID_SDK_ROOT/cmdline-tools/bin/sdkmanager "platform-tools"
+          
+          # 安装Android SDK平台
+          $ANDROID_SDK_ROOT/cmdline-tools/bin/sdkmanager "platforms;android-31"
+          
+          # 安装构建工具33.0.2
+          $ANDROID_SDK_ROOT/cmdline-tools/bin/sdkmanager "build-tools;33.0.2"
+          
+          # 安装NDK 23b
+          $ANDROID_SDK_ROOT/cmdline-tools/bin/sdkmanager "ndk;23.1.7779620"
+          
+          echo "Android组件安装完成"
+          echo "构建工具版本："
+          ls $ANDROID_SDK_ROOT/build-tools/
+
+      # 8. 安装Buildozer和依赖
+      - name: 安装Buildozer
+        run: |
+          python3 -m pip install --user --upgrade pip
+          python3 -m pip install --user buildozer==1.5.0
+          python3 -m pip install --user cython==0.29.28
+          
+          echo "Buildozer版本："
+          ~/.local/bin/buildozer --version
+
+      # 9. 准备构建
+      - name: 准备构建
+        run: |
+          # 设置PATH
+          echo "PATH=$PATH:~/.local/bin" >> $GITHUB_ENV
+          
+          # 创建必要的目录
+          mkdir -p .buildozer/android/platform
+
+      # 10. 执行构建
       - name: 构建APK
-        env:
-          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
           echo "开始构建APK..."
+          echo "当前目录："
+          pwd
+          echo "环境变量："
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          echo "ANDROID_HOME=$ANDROID_HOME"
           
-          # 设置PATH
-          export PATH=$PATH:~/.local/bin
+          # 使用Buildozer构建
+          buildozer android debug 2>&1 | tee build.log
           
-          # 先初始化Buildozer环境（不执行clean）
-          echo "初始化Buildozer环境..."
-          buildozer android update 2>&1 | tee init.log
-          
-          # 检查初始化是否成功
-          if [ -d ".buildozer/android/platform" ]; then
-            echo "✓ Buildozer环境初始化成功"
-          else
-            echo "✗ Buildozer环境初始化失败"
-            echo "初始化日志："
-            cat init.log
-            exit 1
-          fi
-          
-          # 开始构建（跳过clean步骤，避免删除刚初始化的环境）
-          echo "开始构建APK..."
-          buildozer -v android debug 2>&1 | tee build_output.txt
-          
-          # 检查结果
+          # 检查是否生成APK
           if ls bin/*.apk 1> /dev/null 2>&1; then
             echo "✅ APK构建成功！"
             ls -lh bin/*.apk
           else
             echo "❌ APK构建失败"
-            echo "最后50行构建日志："
-            tail -50 build_output.txt
+            echo "构建日志最后100行："
+            tail -100 build.log
             exit 1
           fi
 
-      # 7. 上传APK
+      # 11. 上传APK
       - name: 上传APK文件
         if: success()
         uses: actions/upload-artifact@v4
