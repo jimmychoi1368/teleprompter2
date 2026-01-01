@@ -29,7 +29,7 @@ jobs:
           unzip commandlinetools-linux-9477386_latest.zip
           rm commandlinetools-linux-9477386_latest.zip
           
-          # 创建正确的目录结构：android-sdk/cmdline-tools/latest/
+          # 创建正确的目录结构
           mkdir -p android-sdk/cmdline-tools/latest
           mv cmdline-tools/* android-sdk/cmdline-tools/latest/
           rmdir cmdline-tools
@@ -38,56 +38,23 @@ jobs:
           echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
           echo "ANDROID_HOME=$PWD/android-sdk" >> $GITHUB_ENV
           echo "PATH=$PATH:$PWD/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_ENV
-          
-          echo "Android SDK目录结构："
-          find android-sdk -type f -name "sdkmanager" 2>/dev/null
 
-      - name: 接受Android许可证（终极方案）
+      - name: 接受Android许可证（简单版）
         run: |
-          # 创建一个脚本自动接受所有许可证
+          # 创建必要的目录和文件
           mkdir -p ~/.android
           touch ~/.android/repositories.cfg
           
-          # 使用yes命令自动接受所有许可证
-          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses
-          
-          # 如果上面失败，尝试使用expect自动输入y
-          sudo apt-get install -y expect > /dev/null 2>&1
-          
-          cat > accept_all_licenses.exp << 'EOF'
-#!/usr/bin/expect
-set timeout -1
-spawn $env(ANDROID_SDK_ROOT)/cmdline-tools/latest/bin/sdkmanager --sdk_root=$env(ANDROID_SDK_ROOT) --licenses
-expect {
-  "y/N" { send "y\r"; exp_continue }
-  eof
-}
-EOF
-          
-          chmod +x accept_all_licenses.exp
-          ./accept_all_licenses.exp
-          
-          echo "所有许可证已接受"
+          # 使用echo自动接受所有许可证
+          echo "y" | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses
 
-      - name: 安装Android组件（指定版本）
+      - name: 安装Android组件
         run: |
-          # 先安装platform-tools
+          # 安装组件，每个都指定SDK根目录
           $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platform-tools"
-          
-          # 安装Android 31平台
           $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platforms;android-31"
-          
-          # 特别注意：先安装构建工具33.0.2
           $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT "build-tools;33.0.2"
-          
-          # 如果33.0.2失败，尝试安装其他版本
-          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT "build-tools;30.0.3" || true
-          
-          # 安装NDK 23.1.7779620
           $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT "ndk;23.1.7779620"
-          
-          echo "检查已安装的构建工具："
-          ls -la $ANDROID_SDK_ROOT/build-tools/
 
       - name: 安装Buildozer
         run: |
